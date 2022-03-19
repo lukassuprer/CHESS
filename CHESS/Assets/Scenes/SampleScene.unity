@@ -153,7 +153,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   boardCube: {fileID: 3089117770634264625, guid: f3937b88de5fc487091d9dd6cdb4dd41, type: 3}
-  chessFigure: {fileID: 5774093758637127164, guid: 9e953f6a81d174156af5bead704dca43, type: 3}
+  chessFigurePawn: {fileID: 5774093758637127164, guid: 9e953f6a81d174156af5bead704dca43, type: 3}
+  chessFigureRook: {fileID: 504440159537610416, guid: 59fe39378cb3349f59c76c1cdfa904cb, type: 3}
   cubesList: []
   letterList: []
   mainCamera: {fileID: 963194227}

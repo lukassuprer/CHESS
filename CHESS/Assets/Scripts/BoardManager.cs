@@ -7,7 +7,8 @@ using UnityEngine;
 public class BoardManager : MonoBehaviour
 {
     public GameObject boardCube;
-    public GameObject chessFigure;
+    public GameObject chessFigurePawn;
+    public GameObject chessFigureRook;
     public List<GameObject> cubesList = new List<GameObject>();
     public List<String> letterList = new List<string>();
     private int positionNumber = 1;
@@ -18,6 +19,11 @@ public class BoardManager : MonoBehaviour
     private GameObject[,] cubesArray = new GameObject[heightCount, widthCount];
     private ChessPiece chessPiece;
     public List<ChessPiece> listOfPieces = new List<ChessPiece>();
+    private bool figureSelected;
+    private ChessPiece selectedPiece;
+
+    private int x;
+    private int y;
 
     private enum Letters
     {
@@ -62,6 +68,7 @@ public class BoardManager : MonoBehaviour
         }
 
         InstantiatePawns();
+        InstantiateRooks();
     }
 
     private void Update()
@@ -74,42 +81,109 @@ public class BoardManager : MonoBehaviour
 
     private void MoveToPosition()
     {
-        RaycastHit hit;
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        int index;
-        if (Physics.Raycast(ray, out hit))
+        RaycastHit hitFigure;
+        Ray rayFigure = mainCamera.ScreenPointToRay(Input.mousePosition);
+        int indexPawn;
+        if (!figureSelected)
         {
-            index = listOfPieces.IndexOf(hit.transform.GetComponent<ChessPiece>());
-            if (hit.transform.gameObject == listOfPieces[index].piece)
+            if (Physics.Raycast(rayFigure, out hitFigure))
             {
-                int jFound;
-                int kFound;
-                if (FindIndicesOfObject(hit.transform.parent.gameObject, out jFound, out kFound))
+                if (hitFigure.transform.GetComponent<ChessPiece>())
                 {
-                    if (listOfPieces[index].name == "pawn")
+                    selectedPiece = hitFigure.transform.GetComponent<ChessPiece>();
+                    figureSelected = true;
+                    selectedPiece.GetComponent<Renderer>().material.color = Color.green;
+                    MoveFigure(selectedPiece);
+                }
+            }
+        }
+        else if (figureSelected)
+        {
+            if (Physics.Raycast(rayFigure, out hitFigure))
+            {
+                if (hitFigure.transform.GetComponent<ChessPiece>())
+                {
+                    selectedPiece.GetComponent<Renderer>().material.color = Color.red;
+                    selectedPiece = hitFigure.transform.GetComponent<ChessPiece>();
+                    figureSelected = true;
+                    selectedPiece.GetComponent<Renderer>().material.color = Color.green;
+                    MoveFigure(selectedPiece);
+                }
+                else
+                {
+                    FindIndicesOfObjectToMove(selectedPiece.transform.parent.gameObject, out x, out y);
+                    selectedPiece.GetComponent<Renderer>().material.color = Color.green;
+                    MoveFigure(selectedPiece);
+                }
+            }
+        }
+    }
+
+    private void MoveFigure(ChessPiece pieceToMove)
+    {
+        int indexFigure;
+        indexFigure = listOfPieces.IndexOf(pieceToMove);
+        if (listOfPieces[indexFigure].name == "rook" &&
+            pieceToMove.transform.gameObject == listOfPieces[indexFigure].piece)
+        {
+            RaycastHit hitMove;
+            Ray rayMove = mainCamera.ScreenPointToRay(Input.mousePosition);
+            if (figureSelected)
+            {
+                if (Physics.Raycast(rayMove, out hitMove))
+                {
+                    int jFound;
+                    int kFound;
+                    if (FindIndicesOfObjectToMove(hitMove.transform.gameObject, out jFound, out kFound))
                     {
-                        if (listOfPieces[index].pawnMove == true)
-                        {
-                            listOfPieces[index].piece.transform.DOMove(
-                                cubesArray[jFound, kFound + 2].transform.position + Vector3.up, 1f);
-                            listOfPieces[index].pawnMove = false;
-                            listOfPieces[index].piece.transform.parent = cubesArray[jFound, kFound + 2].transform;
-                        }
-                        else
-                        {
-                            listOfPieces[index].piece.transform.DOMove(
-                                cubesArray[jFound, kFound + listOfPieces[index].horizontalNumber].transform.position +
-                                Vector3.up, 1f);
-                            listOfPieces[index].piece.transform.parent =
-                                cubesArray[jFound, kFound + listOfPieces[index].horizontalNumber].transform;
-                        }
+                        y = kFound;
+                        listOfPieces[indexFigure].piece.transform.DOMove(
+                            cubesArray[x, y].transform.position +
+                            Vector3.up, 1f);
+                        listOfPieces[indexFigure].piece.transform.parent =
+                            cubesArray[x, y].transform;
+                        figureSelected = false;
+                        selectedPiece.GetComponent<Renderer>().material.color = Color.red;
+                    }
+                }
+            }
+        }
+
+        if (pieceToMove.transform.GetComponent<ChessPiece>())
+        {
+            int jFound;
+            int kFound;
+            if (listOfPieces[indexFigure].name == "pawn" &&
+                pieceToMove.transform.gameObject == listOfPieces[indexFigure].piece)
+            {
+                if (FindIndicesOfObjectToMove(pieceToMove.transform.parent.gameObject, out jFound, out kFound))
+                {
+                    if (listOfPieces[indexFigure].pawnMove == true)
+                    {
+                        listOfPieces[indexFigure].piece.transform.DOMove(
+                            cubesArray[jFound, kFound + 2].transform.position + Vector3.up, 1f);
+                        listOfPieces[indexFigure].pawnMove = false;
+                        listOfPieces[indexFigure].piece.transform.parent = cubesArray[jFound, kFound + 2].transform;
+                        figureSelected = false;
+                        selectedPiece.GetComponent<Renderer>().material.color = Color.red;
+                    }
+                    else
+                    {
+                        listOfPieces[indexFigure].piece.transform.DOMove(
+                            cubesArray[jFound, kFound + listOfPieces[indexFigure].horizontalNumber].transform
+                                .position +
+                            Vector3.up, 1f);
+                        listOfPieces[indexFigure].piece.transform.parent =
+                            cubesArray[jFound, kFound + listOfPieces[indexFigure].horizontalNumber].transform;
+                        figureSelected = false;
+                        selectedPiece.GetComponent<Renderer>().material.color = Color.red;
                     }
                 }
             }
         }
     }
 
-    bool FindIndicesOfObject(GameObject objectToLookFor, out int j, out int k)
+    bool FindIndicesOfObjectToMove(GameObject objectToLookFor, out int j, out int k)
     {
         for (j = 0; j < heightCount; j++)
         {
@@ -136,17 +210,40 @@ public class BoardManager : MonoBehaviour
             chessPiece.horizontalNumber = 1;
             chessPiece.pawnMove = true;
         }
+
+        if (chessPiece.name == "rook")
+        {
+            chessPiece.diagonalMove = false;
+            chessPiece.horizontalMove = true;
+            chessPiece.horizontalNumber = 0;
+        }
     }
 
     private void InstantiatePawns()
     {
         for (int i = 0; i < widthCount; i++)
         {
-            GameObject pawnPiece = Instantiate(chessFigure, cubesArray[i, 0].transform.position + Vector3.up, Quaternion.identity);
+            GameObject pawnPiece = Instantiate(chessFigurePawn, cubesArray[i, 0].transform.position + Vector3.up,
+                Quaternion.identity);
             chessPiece = pawnPiece.GetComponent<ChessPiece>();
             chessPiece.piece = pawnPiece;
             chessPiece.piece.transform.SetParent(cubesArray[i, 0].transform, true);
             chessPiece.name = "pawn";
+            SetValues(chessPiece);
+            listOfPieces.Add(chessPiece);
+        }
+    }
+
+    private void InstantiateRooks()
+    {
+        for (int i = 0; i < widthCount; i += widthCount - 1)
+        {
+            GameObject rookPiece = Instantiate(chessFigureRook, cubesArray[i, 1].transform.position + Vector3.up,
+                Quaternion.identity);
+            chessPiece = rookPiece.GetComponent<ChessPiece>();
+            chessPiece.piece = rookPiece;
+            chessPiece.piece.transform.SetParent(cubesArray[i, 1].transform, true);
+            chessPiece.name = "rook";
             SetValues(chessPiece);
             listOfPieces.Add(chessPiece);
         }
