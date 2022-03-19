@@ -132,18 +132,25 @@ public class BoardManager : MonoBehaviour
             {
                 if (Physics.Raycast(rayMove, out hitMove))
                 {
-                    int jFound;
-                    int kFound;
-                    if (FindIndicesOfObjectToMove(hitMove.transform.gameObject, out jFound, out kFound))
+                    int newX;
+                    int newY;
+                    if (FindIndicesOfObjectToMove(hitMove.transform.gameObject, out newX, out newY))
                     {
-                        y = kFound;
-                        listOfPieces[indexFigure].piece.transform.DOMove(
-                            cubesArray[x, y].transform.position +
-                            Vector3.up, 1f);
-                        listOfPieces[indexFigure].piece.transform.parent =
-                            cubesArray[x, y].transform;
-                        figureSelected = false;
-                        selectedPiece.GetComponent<Renderer>().material.color = Color.red;
+                        if (x > newX)
+                        {
+                            x = newX;
+                            RookMove(indexFigure);
+                        }
+                        else if (x < newX)
+                        {
+                            x = newX;
+                            RookMove(indexFigure);
+                        }
+                        else if (newY > y || newY < y)
+                        {
+                            y = newY;
+                            RookMove(indexFigure);
+                        }
                     }
                 }
             }
@@ -151,36 +158,63 @@ public class BoardManager : MonoBehaviour
 
         if (pieceToMove.transform.GetComponent<ChessPiece>())
         {
-            int jFound;
-            int kFound;
+            int newX;
+            int newY;
             if (listOfPieces[indexFigure].name == "pawn" &&
                 pieceToMove.transform.gameObject == listOfPieces[indexFigure].piece)
             {
-                if (FindIndicesOfObjectToMove(pieceToMove.transform.parent.gameObject, out jFound, out kFound))
+                RaycastHit hitMove;
+                Ray rayMove = mainCamera.ScreenPointToRay(Input.mousePosition);
+                if (Physics.Raycast(rayMove, out hitMove))
                 {
-                    if (listOfPieces[indexFigure].pawnMove == true)
+                    if (FindIndicesOfObjectToMove(hitMove.transform.gameObject, out newX, out newY))
                     {
-                        listOfPieces[indexFigure].piece.transform.DOMove(
-                            cubesArray[jFound, kFound + 2].transform.position + Vector3.up, 1f);
-                        listOfPieces[indexFigure].pawnMove = false;
-                        listOfPieces[indexFigure].piece.transform.parent = cubesArray[jFound, kFound + 2].transform;
-                        figureSelected = false;
-                        selectedPiece.GetComponent<Renderer>().material.color = Color.red;
-                    }
-                    else
-                    {
-                        listOfPieces[indexFigure].piece.transform.DOMove(
-                            cubesArray[jFound, kFound + listOfPieces[indexFigure].horizontalNumber].transform
-                                .position +
-                            Vector3.up, 1f);
-                        listOfPieces[indexFigure].piece.transform.parent =
-                            cubesArray[jFound, kFound + listOfPieces[indexFigure].horizontalNumber].transform;
-                        figureSelected = false;
-                        selectedPiece.GetComponent<Renderer>().material.color = Color.red;
+                        if (listOfPieces[indexFigure].pawnMove == true)
+                        {
+                            if (newY == y + 2)
+                            {
+                                y = newY;
+                                PawnMove(indexFigure);
+                            }
+                            else if(newY == y + 1)
+                            {
+                                y = newY;
+                                PawnMove(indexFigure);
+                            }
+                        }
+                        else
+                        {
+                            if (newY == y + 1)
+                            {
+                                y = newY;
+                                PawnMove(indexFigure);
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+
+    private void RookMove(int indexFigure)
+    {
+        listOfPieces[indexFigure].piece.transform.DOMove(
+            cubesArray[x, y].transform.position +
+            Vector3.up, 1f);
+        listOfPieces[indexFigure].piece.transform.parent =
+            cubesArray[x, y].transform;
+        figureSelected = false;
+        selectedPiece.GetComponent<Renderer>().material.color = Color.red;
+    }
+
+    private void PawnMove(int indexFigure)
+    {
+        listOfPieces[indexFigure].piece.transform.DOMove(
+            cubesArray[x, y].transform.position + Vector3.up, 1f);
+        listOfPieces[indexFigure].piece.transform.parent = cubesArray[x, y].transform;
+        listOfPieces[indexFigure].pawnMove = false;
+        figureSelected = false;
+        selectedPiece.GetComponent<Renderer>().material.color = Color.red;
     }
 
     bool FindIndicesOfObjectToMove(GameObject objectToLookFor, out int j, out int k)
