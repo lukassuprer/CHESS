@@ -21,6 +21,7 @@ public class BoardManager : MonoBehaviour
     public List<ChessPiece> listOfPieces = new List<ChessPiece>();
     private bool figureSelected;
     private ChessPiece selectedPiece;
+    private List<GameObject> activeBlocks = new List<GameObject>();
 
     private int x;
     private int y;
@@ -35,6 +36,12 @@ public class BoardManager : MonoBehaviour
         F,
         G,
         H,
+    }
+
+    public enum TowerType
+    {
+        Pawn,
+        Rook,
     }
 
     private void Start()
@@ -91,6 +98,7 @@ public class BoardManager : MonoBehaviour
                 if (hitFigure.transform.GetComponent<ChessPiece>())
                 {
                     selectedPiece = hitFigure.transform.GetComponent<ChessPiece>();
+                    ActivateBlocks();
                     figureSelected = true;
                     selectedPiece.GetComponent<Renderer>().material.color = Color.green;
                     MoveFigure(selectedPiece);
@@ -104,15 +112,18 @@ public class BoardManager : MonoBehaviour
                 if (hitFigure.transform.GetComponent<ChessPiece>())
                 {
                     selectedPiece.GetComponent<Renderer>().material.color = Color.red;
+                    UnActivateBlocks();
                     selectedPiece = hitFigure.transform.GetComponent<ChessPiece>();
                     figureSelected = true;
                     selectedPiece.GetComponent<Renderer>().material.color = Color.green;
+                    ActivateBlocks();
                     MoveFigure(selectedPiece);
                 }
                 else
                 {
                     FindIndicesOfObjectToMove(selectedPiece.transform.parent.gameObject, out x, out y);
                     selectedPiece.GetComponent<Renderer>().material.color = Color.green;
+                    ActivateBlocks();
                     MoveFigure(selectedPiece);
                 }
             }
@@ -123,7 +134,7 @@ public class BoardManager : MonoBehaviour
     {
         int indexFigure;
         indexFigure = listOfPieces.IndexOf(pieceToMove);
-        if (listOfPieces[indexFigure].name == "rook" &&
+        if (listOfPieces[indexFigure].towerType == TowerType.Rook &&
             pieceToMove.transform.gameObject == listOfPieces[indexFigure].piece)
         {
             RaycastHit hitMove;
@@ -132,24 +143,27 @@ public class BoardManager : MonoBehaviour
             {
                 if (Physics.Raycast(rayMove, out hitMove))
                 {
-                    int newX;
-                    int newY;
-                    if (FindIndicesOfObjectToMove(hitMove.transform.gameObject, out newX, out newY))
+                    if (activeBlocks.Contains(hitMove.transform.gameObject))
                     {
-                        if (x > newX)
+                        int newX;
+                        int newY;
+                        if (FindIndicesOfObjectToMove(hitMove.transform.gameObject, out newX, out newY))
                         {
-                            x = newX;
-                            RookMove(indexFigure);
-                        }
-                        else if (x < newX)
-                        {
-                            x = newX;
-                            RookMove(indexFigure);
-                        }
-                        else if (newY > y || newY < y)
-                        {
-                            y = newY;
-                            RookMove(indexFigure);
+                            if (x > newX)
+                            {
+                                x = newX;
+                                RookMove(indexFigure);
+                            }
+                            else if (x < newX)
+                            {
+                                x = newX;
+                                RookMove(indexFigure);
+                            }
+                            else if (newY > y || newY < y)
+                            {
+                                y = newY;
+                                RookMove(indexFigure);
+                            }
                         }
                     }
                 }
@@ -160,39 +174,74 @@ public class BoardManager : MonoBehaviour
         {
             int newX;
             int newY;
-            if (listOfPieces[indexFigure].name == "pawn" &&
+            if (listOfPieces[indexFigure].towerType == TowerType.Pawn &&
                 pieceToMove.transform.gameObject == listOfPieces[indexFigure].piece)
             {
                 RaycastHit hitMove;
                 Ray rayMove = mainCamera.ScreenPointToRay(Input.mousePosition);
                 if (Physics.Raycast(rayMove, out hitMove))
                 {
-                    if (FindIndicesOfObjectToMove(hitMove.transform.gameObject, out newX, out newY))
+                    if (activeBlocks.Contains(hitMove.transform.gameObject))
                     {
-                        if (listOfPieces[indexFigure].pawnMove == true)
+                        if (FindIndicesOfObjectToMove(hitMove.transform.gameObject, out newX, out newY))
                         {
-                            if (newY == y + 2)
+                            if (listOfPieces[indexFigure].pawnMove == true)
                             {
-                                y = newY;
-                                PawnMove(indexFigure);
+                                if (newY == y + 2)
+                                {
+                                    y = newY;
+                                    PawnMove(indexFigure);
+                                }
+                                else if (newY == y + 1)
+                                {
+                                    y = newY;
+                                    PawnMove(indexFigure);
+                                }
                             }
-                            else if(newY == y + 1)
+                            else
                             {
-                                y = newY;
-                                PawnMove(indexFigure);
-                            }
-                        }
-                        else
-                        {
-                            if (newY == y + 1)
-                            {
-                                y = newY;
-                                PawnMove(indexFigure);
+                                if (newY == y + 1)
+                                {
+                                    y = newY;
+                                    PawnMove(indexFigure);
+                                }
                             }
                         }
                     }
                 }
             }
+        }
+    }
+
+    private void ActivateBlocks()
+    {
+        activeBlocks.Clear();
+        for (int i = 0; i < selectedPiece.possibleDirections.Count; i++)
+        {
+            RaycastHit[] hit = Physics.RaycastAll(selectedPiece.transform.parent.position, selectedPiece.possibleDirections[i], selectedPiece.horizontalNumber * 2);
+            for (int j = 0; j < hit.Length; j++)
+            {
+                if (hit[j].transform.tag == "block")
+                {
+                    if (hit[j].transform.childCount < 1)
+                    {
+                        hit[j].transform.gameObject.GetComponent<Renderer>().material.color = Color.green;
+                        activeBlocks.Add(hit[j].transform.gameObject);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private void UnActivateBlocks()
+    {
+        for (int i = 0; i < activeBlocks.Count; i++)
+        {
+            activeBlocks[i].GetComponent<Renderer>().material.color = Color.white;
         }
     }
 
@@ -205,6 +254,7 @@ public class BoardManager : MonoBehaviour
             cubesArray[x, y].transform;
         figureSelected = false;
         selectedPiece.GetComponent<Renderer>().material.color = Color.red;
+        UnActivateBlocks();
     }
 
     private void PawnMove(int indexFigure)
@@ -213,8 +263,10 @@ public class BoardManager : MonoBehaviour
             cubesArray[x, y].transform.position + Vector3.up, 1f);
         listOfPieces[indexFigure].piece.transform.parent = cubesArray[x, y].transform;
         listOfPieces[indexFigure].pawnMove = false;
+        listOfPieces[indexFigure].horizontalNumber = 1;
         figureSelected = false;
         selectedPiece.GetComponent<Renderer>().material.color = Color.red;
+        UnActivateBlocks();
     }
 
     bool FindIndicesOfObjectToMove(GameObject objectToLookFor, out int j, out int k)
@@ -237,19 +289,29 @@ public class BoardManager : MonoBehaviour
 
     private void SetValues(ChessPiece chessPiece)
     {
-        if (chessPiece.name == "pawn")
+        if (chessPiece.towerType == TowerType.Pawn)
         {
             chessPiece.diagonalMove = false;
             chessPiece.horizontalMove = true;
-            chessPiece.horizontalNumber = 1;
+            chessPiece.horizontalNumber = 2;
             chessPiece.pawnMove = true;
+            chessPiece.possibleDirections.Add(Vector3.forward);
         }
 
-        if (chessPiece.name == "rook")
+        if (chessPiece.towerType == TowerType.Rook)
         {
             chessPiece.diagonalMove = false;
             chessPiece.horizontalMove = true;
-            chessPiece.horizontalNumber = 0;
+            chessPiece.horizontalNumber = 8;
+            AddToList(chessPiece, Vector3.back, Vector3.left, Vector3.right, Vector3.forward);
+        }
+    }
+
+    private void AddToList(ChessPiece pieceList, params Vector3[] list)
+    {
+        for (int i = 0; i < list.Length; i++)
+        {
+            pieceList.possibleDirections.Add(list[i]);
         }
     }
 
@@ -263,6 +325,7 @@ public class BoardManager : MonoBehaviour
             chessPiece.piece = pawnPiece;
             chessPiece.piece.transform.SetParent(cubesArray[i, 0].transform, true);
             chessPiece.name = "pawn";
+            chessPiece.towerType = TowerType.Pawn;
             SetValues(chessPiece);
             listOfPieces.Add(chessPiece);
         }
@@ -278,6 +341,7 @@ public class BoardManager : MonoBehaviour
             chessPiece.piece = rookPiece;
             chessPiece.piece.transform.SetParent(cubesArray[i, 1].transform, true);
             chessPiece.name = "rook";
+            chessPiece.towerType = TowerType.Rook;
             SetValues(chessPiece);
             listOfPieces.Add(chessPiece);
         }
